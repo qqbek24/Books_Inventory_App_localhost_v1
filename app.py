@@ -1,15 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, escape
 # from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 
-import constants
-import myconnutils
+from config import Config
+from myconnutils import my_db_connection
 import models
 import json
 from urllib.request import urlopen
 import string
 
 app = Flask(__name__)
-app.secret_key = constants.APP_SECRET_KEY
+app.secret_key = Config.SECRET_KEY
 # app.permanent_session_lifetime = True
 
 
@@ -68,7 +68,7 @@ def log():
             flash('Please fill out the fields')
         else:
             if request.method == 'POST':
-                my_db = myconnutils.my_db_connection()
+                my_db = my_db_connection()
                 my_cursor = my_db.cursor()
 
                 if 'username' in session:
@@ -81,6 +81,7 @@ def log():
                             session['username'] = request.form['username']
                             my_db.commit()
                             my_cursor.close()
+                            my_db.close()
                             flash('Login Successfully')
                             return render_template('index.html')
                         else:
@@ -128,7 +129,7 @@ def insert():
             return render_template('index.html')
         else:
             if request.method == 'POST':
-                my_db = myconnutils.my_db_connection()
+                my_db = my_db_connection()
                 my_cursor = my_db.cursor()
                 if request.method == 'POST':
                     my_cursor.execute("SELECT COUNT(1) FROM invent_table_view WHERE title = %s;", [p_title])
@@ -155,10 +156,12 @@ def insert():
 def searchall():
     try:
         if request.method == 'POST':
-            my_db = myconnutils.my_db_connection()
+            my_db = my_db_connection()
             my_cursor = my_db.cursor()
             my_cursor.execute("SELECT * FROM invent_table_view")
             data = my_cursor.fetchall()
+            my_cursor.close()
+            my_db.close()
             return render_template('index.html', products=data)
     except Exception as e:
         flash(str(e))
@@ -243,13 +246,15 @@ def search_language():
 def search_col(prod_search, sql_stm_cnt_ex, sql_stm_ex):
     prod_search_str = prod_search
     if request.method == 'POST':
-        my_db = myconnutils.my_db_connection()
+        my_db = my_db_connection()
         my_cursor = my_db.cursor()
         if request.method == 'POST':
             my_cursor.execute(sql_stm_cnt_ex, ["%" + prod_search_str + "%"])
             if my_cursor.fetchone()[0]:
                 my_cursor.execute(sql_stm_ex, ["%" + prod_search_str + "%"])
                 prod = my_cursor.fetchall()
+                my_cursor.close()
+                my_db.close()
                 return prod
             else:
                 return 'There no such product as '
@@ -267,7 +272,7 @@ def delete():
             return render_template('index.html')
         else:
             if request.method == 'POST':
-                my_db = myconnutils.my_db_connection()
+                my_db = my_db_connection()
                 my_cursor = my_db.cursor()
                 if request.method == 'POST':
                     my_cursor.execute("SELECT COUNT(1) FROM invent_table_view WHERE title = %s;", [del_title])
@@ -312,7 +317,7 @@ def update():
             return render_template('index.html')
         else:
             if request.method == 'POST':
-                my_db = myconnutils.my_db_connection()
+                my_db = my_db_connection()
                 my_cursor = my_db.cursor()
                 if request.method == 'POST':
                     my_cursor.execute("SELECT COUNT(1) FROM invent_table_view WHERE title = %s;", [title_p])
@@ -357,7 +362,7 @@ def searchapi():
 def request_ggl_bks_api(form_value):
     s = form_value
     q_value = s.translate({ord(c): None for c in string.whitespace})
-    google_api_key = constants.GOOGLE_BOOKS_API_KEY
+    google_api_key = Config.GOOGLE_BOOKS_API_KEY
     req_params = ('?q=' + q_value + '&maxResults=40' + '&key=' + google_api_key)
     req_api = urlopen("https://www.googleapis.com/books/v1/volumes" + req_params)
     return req_api

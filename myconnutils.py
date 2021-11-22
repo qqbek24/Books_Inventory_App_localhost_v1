@@ -1,12 +1,12 @@
 import pymysql
-import constants
+from config import Config
 
 
 def my_db_connection():
-    user_login = constants.DB_USER_LOGIN
-    user_pass = constants.DB_USER_PASS
-    s_host = constants.S_HOST
-    s_db = constants.S_DB
+    user_login = Config.DB_USER_LOGIN
+    user_pass = Config.DB_USER_PASS
+    s_host = Config.S_HOST
+    s_db = Config.S_DB
 
     my_db = pymysql.connect(
         user=user_login,
